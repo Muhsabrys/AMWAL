@@ -1,0 +1,551 @@
+<title>طابور التعليقات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with charts breaking wider; sticky ministry filter; ministry = fixed color everywhere */
+:root{
+  --bg:#f3f5f8; --card:#ffffff; --ink:#0f1b2d; --muted:#56627a; --faint:#8a94a6; --line:#dde2ea; --track:#e9edf2;
+  --edu:#2a78d6; --hou:#eb6834; --hea:#1baf7a;
+  --pos:#4a3aa7; --neg:#e34948; --neu:#c3c8d0; --oth:#e6e8ec;
+  --emph:#0f1b2d; --soft:#cfd5de; --on:#ffffff;
+  --f-display:"Noto Kufi Arabic","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-ar:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e131b; --card:#151c27; --ink:#eef2f7; --muted:#a3aec0; --faint:#748097; --line:#283244; --track:#1e2733;
+  --edu:#3987e5; --hou:#d95926; --hea:#199e70; --pos:#9085e9; --neg:#e66767; --neu:#4a505a; --oth:#2a313c;
+  --emph:#eef2f7; --soft:#3a4352; --on:#0e131b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e131b; --card:#151c27; --ink:#eef2f7; --muted:#a3aec0; --faint:#748097; --line:#283244; --track:#1e2733;
+  --edu:#3987e5; --hou:#d95926; --hea:#199e70; --pos:#9085e9; --neg:#e66767; --neu:#4a505a; --oth:#2a313c;
+  --emph:#eef2f7; --soft:#3a4352; --on:#0e131b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:0 80px}
+.col{max-width:68ch}
+.ar{font-family:var(--f-ar)}
+header.hero{padding-block:64px 36px}
+.kicker{font:600 14px/1.4 var(--f-body);color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:900;font-size:clamp(40px,8vw,88px);line-height:1.25;margin:.25em 0 .3em;text-wrap:balance}
+h1 em{font-style:normal;font-weight:500;font-size:.62em;display:block;color:var(--muted);margin-top:.1em}
+.lede{font-size:clamp(17px,2.2vw,20px);line-height:1.55;max-width:62ch}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:36px}
+.stat{background:var(--bg);padding:18px 18px 16px}
+.stat b{display:block;font-family:var(--f-mono);font-weight:500;font-size:clamp(30px,4.4vw,46px);line-height:1;font-variant-numeric:tabular-nums}
+.stat span{display:block;color:var(--muted);font-size:14px;margin-top:8px;line-height:1.4}
+@media (max-width:720px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.filter{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-block:1px solid var(--line);margin-inline:-20px;padding:10px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.filter .lab{font:600 13px var(--f-body);color:var(--muted);margin-left:4px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);font:500 14px var(--f-body);padding:6px 12px 6px 10px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip{direction:rtl}.chip i{width:10px;height:10px;border-radius:50%;background:var(--c,var(--ink))}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible,.seg button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+section{padding-block:56px 8px}
+h2{font-family:var(--f-display);font-weight:900;font-size:clamp(26px,4.2vw,42px);line-height:1.35;margin:.2em 0 .45em;text-wrap:balance}
+h3{font:600 15px var(--f-body);margin:0 0 4px}
+p{margin:0 0 1em}
+.num{font-family:var(--f-mono);font-size:.92em;font-variant-numeric:tabular-nums}
+figure{margin:24px 0 0;background:var(--card);border:1px solid var(--line);padding:20px;min-width:0}
+figcaption{color:var(--muted);font-size:13px;margin-top:12px;line-height:1.45}
+.fighead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+.fighead .sub{color:var(--muted);font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:500 13px var(--f-body);padding:6px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin-bottom:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;background:var(--c)}
+.chart{width:100%;min-width:0}
+.chart svg{display:block;overflow:visible;direction:ltr}
+.chart text{fill:var(--ink);font-family:var(--f-body)}
+.chart .m{fill:var(--muted)}
+.chart .tick line{stroke:var(--line)}
+.chart .domain{display:none}
+.chart .tick text{fill:var(--faint);font:11px var(--f-mono)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.big{font-family:var(--f-mono);font-weight:500;font-size:clamp(64px,12vw,128px);line-height:.85;font-variant-numeric:tabular-nums}
+.pull{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center}
+@media (max-width:600px){.pull{grid-template-columns:minmax(0,1fr)}}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+th{font:600 13px var(--f-body);color:var(--muted);cursor:pointer;white-space:nowrap}
+th[aria-sort] {color:var(--ink)}
+td.v{font-variant-numeric:tabular-nums;white-space:nowrap}
+.cellbar{display:flex;align-items:center;gap:8px}
+.cellbar s{display:block;height:6px;border-radius:3px 0 0 3px;background:var(--c);text-decoration:none}
+.note{border-right:3px solid var(--ink);padding:2px 16px 2px 0;color:var(--muted);font-size:15px}
+.cant{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:18px}
+.cant div{border-top:2px solid var(--ink);padding-top:10px;font-size:15px}
+.cant b{display:block;margin-bottom:4px}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:13px;line-height:1.45;padding:8px 10px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .12s}
+#tip b{font-weight:600}
+.dim{opacity:.2}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+</style>
+<div class="wrap" dir="rtl" lang="ar">
+<header class="hero">
+  <div class="kicker">مصر · ثلاث صفحات وزارية على فيسبوك</div>
+  <h1>الوزارات تُعلن.<em>والمواطنون يسألون.</em></h1>
+  <p class="lede">قرأنا آلاف المنشورات من الصفحات الرسمية لوزارات التربية والتعليم، والإسكان، والصحة في مصر على فيسبوك، والتعليقات التي كتبها الناس تحتها. معظم ما تنشره الصفحات إعلانات. أما التعليقات فتمتلئ بأسئلة عن طريقة التقديم، وشكاوى من مشكلات، وطلبات للمساعدة.</p>
+  <div class="stats">
+    <div class="stat"><b>6,165</b><span>منشورًا وزاريًا حلّلناه</span></div>
+    <div class="stat"><b>25,329</b><span>تعليقًا عامًا حلّلناه</span></div>
+    <div class="stat"><b>78%</b><span>من المنشورات إعلانات</span></div>
+    <div class="stat"><b>52%</b><span>من التعليقات تحتاج على ما يبدو إلى رد رسمي</span></div>
+  </div>
+</header>
+
+<nav class="filter" aria-label="اختر وزارة">
+  <span class="lab">اعرض</span>
+  <button class="chip" data-m="all" aria-pressed="true">الوزارات الثلاث</button>
+  <button class="chip" data-m="education" aria-pressed="false" style="--c:var(--edu)"><i></i>التعليم</button>
+  <button class="chip" data-m="housing" aria-pressed="false" style="--c:var(--hou)"><i></i>الإسكان</button>
+  <button class="chip" data-m="health" aria-pressed="false" style="--c:var(--hea)"><i></i>الصحة</button>
+</nav>
+
+<section id="posts">
+  <div class="col">
+    <div class="kicker">١ · الصفحات</div>
+    <h2>صفحات صُنعت للإعلان</h2>
+    <p>نحو أربعة من كل خمسة منشورات تُعلن عن شيء ما: مشروع إسكان جديد، أو جدول امتحانات، أو افتتاح مستشفى. وقليل منها يطلب من القارئ أن يفعل شيئًا. في <span class="num">82%</span> من المنشورات لا توجد أي دعوة لاتخاذ إجراء: لا تقديم ولا حجز ولا استعلام.</p>
+    <p>وزارة الصحة هي الاستثناء. ربع منشوراتها إرشادات، مثل نصائح عن اللقاحات أو الأعراض أو الوقاية، وليست أخبارًا.</p>
+  </div>
+  <figure>
+    <div class="fighead">
+      <div><h3 id="t-posts">ماذا تنشر كل صفحة</h3><div class="sub">النسبة من منشورات كل وزارة</div></div>
+      <div class="seg" role="group" aria-labelledby="t-posts" id="seg-posts">
+        <button data-f="post_type" aria-pressed="true">نوع المنشور</button>
+        <button data-f="topic" aria-pressed="false">الموضوع</button>
+        <button data-f="audience_action" aria-pressed="false">ما يطلبه من القارئ</button>
+      </div>
+    </div>
+    <div class="legend mlegend"></div>
+    <div class="chart" id="c-posts"></div>
+    <figcaption>مرّر المؤشر فوق أي شريط لعرض الأعداد. الفئات التي تقل عن 1% في كل الوزارات مجمّعة تحت «أخرى».</figcaption>
+  </figure>
+</section>
+
+<section id="detail">
+  <div class="col">
+    <div class="kicker">٢ · التفاصيل</div>
+    <h2>محددة، ومحلية، ومليئة بالأرقام</h2>
+    <p>المنشورات في الغالب ملموسة. ثلاثة من كل أربعة تذكر مكانًا، واثنان من كل ثلاثة تتضمن أرقامًا: وحدات سكنية، وأسرّة، ودرجات، وتواريخ. منشورات الإسكان هي الأكثر تفصيلًا، إذ يذكر <span class="num">94%</span> منها موقعًا. أما المواعيد النهائية وشروط الاستحقاق فأقل حضورًا، إذ يذكر كلًا منهما نحو منشور من كل خمسة، وتذكرها منشورات الصحة أقل من غيرها.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>كم مرة تتضمن المنشورات…</h3><div class="sub">النسبة من منشورات كل وزارة</div></div></div>
+    <div class="legend mlegend"></div>
+    <div class="chart" id="c-feat"></div>
+  </figure>
+</section>
+
+<section id="mood">
+  <div class="col">
+    <div class="kicker">٣ · المزاج</div>
+    <h2>منشورات متفائلة، وردود محبَطة</h2>
+    <p>تكتب الصفحات بنبرة هادئة أو إيجابية، ولا تتجاوز نسبة المنشورات السلبية <span class="num">0.6%</span>. أما التعليقات فمختلفة: نحو ثلثها سلبي. المنشورات تعبّر عن الأمل والفخر، والتعليقات تعبّر أكثر ما تعبّر عن الإحباط والغضب.</p>
+    <p>الفجوة في الإسكان هي الأوسع: <span class="num">42%</span> من التعليقات تحت منشورات الإسكان سلبية، و<span class="num">13%</span> فقط إيجابية.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>نبرة المنشورات ونبرة التعليقات تحتها</h3><div class="sub">النسبة من المنشورات أو التعليقات</div></div></div>
+    <div class="legend" id="lg-tone"></div>
+    <div class="chart" id="c-tone"></div>
+    <figcaption>«أخرى» تشمل النبرة المختلطة أو غير الواضحة.</figcaption>
+  </figure>
+  <figure>
+    <div class="fighead"><div><h3>المشاعر في المنشورات والتعليقات</h3><div class="sub" id="emo-sub"></div></div></div>
+    <div class="chart" id="c-emo"></div>
+    <figcaption>قد يحمل المنشور أو التعليق الواحد حتى ثلاثة مشاعر، لذلك لا يصل مجموع الأشرطة إلى 100%. ومعظم العناصر لا تُظهر شعورًا واضحًا.</figcaption>
+  </figure>
+</section>
+
+<section id="comments">
+  <div class="col">
+    <div class="kicker">٤ · الردود</div>
+    <h2>قسم التعليقات مكتب خدمة عملاء</h2>
+    <p>أكثر التعليقات شيوعًا سؤال عملي، مثل: <i>كيف أقدّم؟</i> أو <i>أين أسلّم الأوراق؟</i> أو <i>متى تظهر النتيجة؟</i> وتأتي الشكاوى في المرتبة الثانية بفارق ضئيل. وإذا أضفنا طلبات المساعدة المباشرة يتجاوز المجموع نصف التعليقات: <span class="num">53%</span>.</p>
+    <p>التعليم يحصل على أكبر قدر من الثناء. والإسكان يتلقى أكبر قدر من الشكاوى: قرابة تعليق من كل ثلاثة.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>ماذا يكتب الناس في التعليقات</h3><div class="sub">النسبة من تعليقات كل وزارة</div></div></div>
+    <div class="legend mlegend"></div>
+    <div class="chart" id="c-intent"></div>
+  </figure>
+</section>
+
+<section id="queue">
+  <div class="col">
+    <div class="kicker">٥ · قائمة الانتظار</div>
+    <h2>نصف التعليقات ينتظر من يرد عليه</h2>
+    <p>حدّدنا كل تعليق يحتاج إلى رد أو إجراء من الوزارة حتى تُحل مسألته. عددها <span class="num">13,225</span> تعليقًا، أي <span class="num">52%</span> من الإجمالي. شمل ذلك كل الأسئلة والشكاوى وطلبات المساعدة تقريبًا، ولم يشمل الثناء والشكر.</p>
+    <p class="note">هذا يبيّن عدد التعليقات التي <b>احتاجت</b> إلى رد، ولا يبيّن هل ردّت الوزارات أم لا. بياناتنا لا تسجّل الردود الرسمية.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>التعليقات التي تحتاج إلى رد رسمي</h3><div class="sub">الوزارات الثلاث · كل شريط نوع من التعليقات</div></div></div>
+    <div class="legend"><span><i style="--c:var(--emph)"></i>تحتاج إلى رد</span><span><i style="--c:var(--soft)"></i>لا تحتاج</span></div>
+    <div class="chart" id="c-queue"></div>
+  </figure>
+  <figure>
+    <div class="fighead"><div><h3>أين تطول قائمة الانتظار</h3><div class="sub">نسبة تعليقات كل وزارة التي تحتاج إلى رد</div></div></div>
+    <div class="chart" id="c-need"></div>
+  </figure>
+</section>
+
+<section id="flow">
+  <div class="col">
+    <div class="kicker">٦ · من المنشور إلى الرد</div>
+    <h2>كل أنواع المنشورات تمتلئ بالأسئلة</h2>
+    <p>هل يجذب الإعلان جمهورًا مختلفًا عن منشور النصائح؟ ليس كثيرًا. نحو نصف التعليقات أسئلة أو شكاوى أو طلبات مساعدة تحت كل أنواع المنشورات: <span class="num">54%</span> تحت الإعلانات، و<span class="num">53%</span> تحت التقارير، و<span class="num">47%</span> تحت الإرشادات. يستخدم الناس أحدث منشور متاح للوصول إلى الوزارة.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>من نوع المنشور إلى نوع التعليق</h3><div class="sub">الوزارات الثلاث · العرض = عدد التعليقات</div></div></div>
+    <div class="legend"><span><i style="--c:var(--emph)"></i>أسئلة وشكاوى وطلبات مساعدة</span><span><i style="--c:var(--soft)"></i>كل ما عدا ذلك</span></div>
+    <div class="chart" id="c-flow"></div>
+    <figcaption>مرّر المؤشر فوق أي مسار أو تسمية لتتبّعه.</figcaption>
+  </figure>
+</section>
+
+<section id="contagion">
+  <div class="col">
+    <div class="kicker">٧ · النبرة لا تنتقل</div>
+    <h2>المنشور المبهج لا يضمن تعليقات مبهجة</h2>
+    <p>المنشورات الإيجابية تحصل فعلًا على تعليقات إيجابية أكثر، لكنها تحصل أيضًا على كثير من التعليقات السلبية: <span class="num">29%</span> من التعليقات تحت المنشورات الإيجابية سلبية، وهي نسبة قريبة من <span class="num">33%</span> تحت المنشورات المحايدة. النبرة الودودة لا تمنع الناس من طرح مشكلاتهم.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>نبرة التعليقات حسب نبرة المنشور</h3><div class="sub">الوزارات الثلاث · مجموع كل صف 100%</div></div></div>
+    <div class="chart" id="c-heat"></div>
+    <figcaption>المنشورات السلبية نادرة (36 منشورًا و266 تعليقًا)، لذا فهذا الصف أقل موثوقية.</figcaption>
+  </figure>
+</section>
+
+<section id="topic">
+  <div class="col">
+    <div class="kicker">٨ · في صلب الموضوع</div>
+    <h2>الناس يلتزمون بموضوع الوزارة</h2>
+  </div>
+  <div class="pull">
+    <div class="big">84%</div>
+    <p class="col" style="margin:0">حين يكون لكل من المنشور والتعليق موضوع واضح، يطابق التعليق موضوع المنشور في <span class="num">84%</span> من الحالات. نحو خُمس التعليقات بلا موضوع واضح أصلًا: تحيات أو أدعية أو ملاحظات عابرة. لكن هذه التعليقات لا تعني أن الناس يخرجون عن الموضوع. فالناس يأتون إلى كل صفحة من أجل خدمات تلك الوزارة نفسها.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>عمّ تتحدث التعليقات</h3><div class="sub">النسبة من تعليقات كل وزارة</div></div></div>
+    <div class="legend mlegend"></div>
+    <div class="chart" id="c-ctopic"></div>
+  </figure>
+</section>
+
+<section id="compare">
+  <div class="col">
+    <div class="kicker">٩ · جنبًا إلى جنب</div>
+    <h2>مقارنة بين الصفحات الثلاث</h2>
+    <p>الإسكان لديها أعلى نسبة إعلانات وأكثر القرّاء استياءً. التعليم والصحة يحصل كل منهما على نحو سبعة تعليقات لكل منشور، أما الإسكان فتنشر أكثر بكثير لكنها تحصل على أقل من تعليق واحد لكل منشور. والصحة تنشر أكبر قدر من النصائح ولديها أهدأ قسم تعليقات بين الثلاث، لكنها أيضًا الوزارة التي قرأنا أصغر نسبة من بياناتها.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>بطاقة أداء الوزارات</h3><div class="sub">انقر على أي عمود للترتيب</div></div></div>
+    <div class="tbl" id="c-table"></div>
+  </figure>
+</section>
+
+<section id="about">
+  <div class="col">
+    <div class="kicker">عن البيانات</div>
+    <h2>كيف أعددنا هذا التحليل</h2>
+    <p>تضم البيانات <span class="num">14,717</span> منشورًا و<span class="num">62,326</span> تعليقًا ظاهرًا من الصفحات الثلاث. صنّفت نماذج لغوية للذكاء الاصطناعي كل منشور وتعليق حسب نوعه وموضوعه ونبرته ومشاعره، وهل يحتاج إلى رد. وقد حُذفت البيانات الشخصية من النصوص قبل ذلك. هذه التصنيفات تقديرات، وليست قراءة بشرية لكل عنصر.</p>
+    <p>العمل ما زال جاريًا. حلّلنا كل منشورات وتعليقات التعليم. أما الإسكان والصحة فلم نحلّل منهما إلا جزءًا من البيانات حتى الآن، لذلك قد تتغير أرقامهما كلما قرأنا المزيد.</p>
+  </div>
+  <figure>
+    <div class="fighead"><div><h3>كم حلّلنا من كل صفحة</h3><div class="sub">ما حُلّل من إجمالي ما جُمع</div></div></div>
+    <div class="chart" id="c-cov"></div>
+  </figure>
+  <h3 style="margin-top:36px">ما لا تستطيع هذه القصة إخبارك به</h3>
+  <div class="cant">
+    <div><b>هل ردّت الوزارات</b>نرى التعليقات التي احتاجت إلى رد، لكننا لا نرى هل جاء الرد.</div>
+    <div><b>التغيّر عبر الزمن</b>يجمع هذا التحليل المنشورات حسب نوعها لا حسب تاريخها، فلا يُظهر كيف تغيّرت الصفحات على مر السنين.</div>
+    <div><b>الإعجابات والمشاركات</b>التفاعلات والمشاركات ليست جزءًا من هذا التحليل. التفاعل هنا يعني التعليقات فقط.</div>
+    <div><b>كل التعليقات</b>حلّلنا التعليقات الظاهرة وقت جمع الصفحات. لا يتجاوز أي منشور محلَّل عشرة تعليقات، لذا يُرجَّح أن أكثر النقاشات ازدحامًا لم تُلتقط إلا جزئيًا.</div>
+  </div>
+  <footer>لقطة بتاريخ 3 أكتوبر 2026. النسب المئوية محسوبة من المنشورات أو التعليقات التي حُلّلت لكل وزارة. التعليقات التي احتوت على بيانات شخصية محسوبة ضمن الأرقام، لكننا لا نقتبس منها أبدًا.</footer>
+</section>
+</div>
+<div id="tip" role="tooltip" dir="rtl"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const D={"generated":"2026-10-03T04:55:47.998037+00:00","totals":{"raw_posts":14717,"raw_comments":62326,"annotated_posts":6165,"annotated_comments":25329,"post_coverage_percent":41.9,"comment_coverage_percent":40.6},"coverage":[{"key":"education","name":"التربية والتعليم","raw_posts":1680,"annotated_posts":1680,"post_coverage_percent":100.0,"raw_comments":11458,"annotated_comments":11458,"comment_coverage_percent":100.0},{"key":"housing","name":"الإسكان والمرافق","raw_posts":6118,"annotated_posts":2952,"post_coverage_percent":48.3,"raw_comments":5100,"annotated_comments":2877,"comment_coverage_percent":56.4},{"key":"health","name":"الصحة والسكان","raw_posts":6919,"annotated_posts":1533,"post_coverage_percent":22.2,"raw_comments":45768,"annotated_comments":10994,"comment_coverage_percent":24.0}],"metrics":[{"key":"education","name":"التربية والتعليم","annotated_posts":1680,"annotated_comments":11458,"announcement_posts":1321,"announcement_percent":78.6,"comments_needing_response":6159,"needs_response_percent":53.8,"negative_comments":3605,"negative_comment_percent":31.5,"question_complaint_help_comments":6295,"question_complaint_help_percent":54.9,"comments_with_personal_data":352,"personal_data_percent":3.1},{"key":"housing","name":"الإسكان والمرافق","annotated_posts":2952,"annotated_comments":2877,"announcement_posts":2537,"announcement_percent":85.9,"comments_needing_response":1869,"needs_response_percent":65.0,"negative_comments":1201,"negative_comment_percent":41.7,"question_complaint_help_comments":1891,"question_complaint_help_percent":65.7,"comments_with_personal_data":157,"personal_data_percent":5.5},{"key":"health","name":"الصحة والسكان","annotated_posts":1533,"annotated_comments":10994,"announcement_posts":964,"announcement_percent":62.9,"comments_needing_response":5197,"needs_response_percent":47.3,"negative_comments":3127,"negative_comment_percent":28.4,"question_complaint_help_comments":5259,"question_complaint_help_percent":47.8,"comments_with_personal_data":451,"personal_data_percent":4.1}],"posts":{"language":{"education":{"arabic":1653,"mixed":21,"english":6},"housing":{"arabic":2875,"mixed":22,"unclear":55},"health":{"arabic":1487,"unclear":40,"mixed":6}},"sentiment":{"education":{"neutral":938,"positive":733,"negative":7,"unclear":2},"housing":{"neutral":1932,"positive":969,"unclear":47,"negative":4},"health":{"positive":451,"neutral":991,"negative":25,"unclear":64,"mixed":2}},"emotion":{"education":{"none":840,"hope":739,"pride":701,"gratitude":187,"joy":187,"sadness":8,"anger":2,"fear":1,"reassurance":1},"housing":{"none":1816,"hope":840,"pride":941,"gratitude":165,"joy":168,"fear":4,"anger":4,"frustration":6,"unclear":3,"sadness":1},"health":{"none":1026,"gratitude":215,"fear":38,"joy":125,"frustration":7,"hope":292,"pride":159,"concern":1,"sadness":10,"anger":6,"unclear":2}},"topic":{"education":{"education":1465,"exams_results":99,"health":3,"employment":16,"unclear":7,"other":59,"service_access":22,"covid_prevention":2,"booking_allocation":4,"infrastructure":2,"report_or_result":1},"housing":{"housing":1357,"infrastructure":1376,"service_access":72,"employment":6,"other":36,"unclear":51,"covid_prevention":5,"education":20,"booking_allocation":9,"health":18,"tourism":1,"health|infrastructure":1},"health":{"health":1235,"service_access":81,"other":40,"covid_prevention":19,"unclear":53,"infrastructure":42,"employment":10,"education":44,"job_or_recruitment":2,"booking_allocation":4,"population":1,"foreign relations":1,"exams_results":1}},"post_type":{"education":{"announcement":1321,"report_or_result":199,"guidance":85,"event":25,"unclear":7,"service_update":16,"announcement|guidance":2,"other":18,"warning":6,"job_or_recruitment":1},"housing":{"announcement":2537,"report_or_result":255,"unclear":53,"service_update":50,"warning":24,"announcement|guidance":4,"guidance":14,"announcement|service_update":1,"event":9,"other":5},"health":{"guidance":388,"announcement":964,"report_or_result":79,"warning":21,"unclear":56,"event":1,"service_update":9,"job_or_recruitment":3,"announcement|service_update":3,"other":8,"announcement|guidance":1}},"audience_action":{"education":{"attend":57,"none":1387,"other":21,"apply":134,"submit_documents":14,"check_status":55,"contact_office":7,"download":1,"check":1,"book":1,"register":1,"submit":1},"housing":{"apply":235,"none":2448,"submit_documents":53,"book":77,"contact_office":27,"check_status|submit_documents|contact_office":1,"check_status":19,"attend":74,"other":7,"unclear":11},"health":{"none":1212,"submit_documents":11,"apply":94,"other":34,"check_status":33,"visit":2,"attend":26,"call":1,"contact_office":78,"book":8,"download_app":1,"wear_mask":2,"donate":4,"check_location":3,"download":3,"contact":9,"contact_or_book":1,"check_app":1,"contact_hotline":1,"ask_questions":1,"ask":1,"unclear":2,"consult_doctor":3,"consult":2}},"specificity":{"education":{"general":535,"specific":1118,"unclear":27},"housing":{"specific":2326,"general":566,"unclear":60},"health":{"general":775,"specific":659,"unclear":99}},"mentions_deadline":{"education":{"false":1257,"true":423},"housing":{"true":752,"false":2200},"health":{"false":1411,"true":122}},"mentions_location":{"education":{"false":607,"true":1073},"housing":{"true":2786,"false":166},"health":{"false":827,"true":706}},"mentions_eligibility":{"education":{"false":1198,"true":482},"housing":{"true":674,"false":2278},"health":{"true":195,"false":1338}},"mentions_numbers":{"education":{"false":602,"true":1078},"housing":{"true":2423,"false":529},"health":{"false":856,"true":677}},"contains_personal_data":{"education":{"false":1673,"true":7},"housing":{"false":2949,"true":3},"health":{"false":1531,"true":2}}},"comments":{"language":{"education":{"arabic":10836,"mixed":223,"unclear":42,"english":176,"arabizi":73,"other":104,"arabic|mixed":1,"arabic|english":1,"french":2},"housing":{"arabic":2702,"other":25,"mixed":36,"unclear":28,"english":42,"arabizi":44},"health":{"arabic":10513,"mixed":190,"unclear":60,"arabizi":51,"other":55,"english":121,"emoji":1,"arabic|english":3}},"sentiment":{"education":{"negative":3605,"neutral":4389,"positive":3313,"unclear":101,"mixed":50},"housing":{"neutral":1249,"negative":1201,"positive":382,"unclear":36,"mixed":9},"health":{"neutral":5017,"positive":2733,"negative":3127,"unclear":89,"mixed":17,"hopeful":4,"sad":1,"prayerful":5,"question":1}},"emotion":{"education":{"anger":1630,"frustration":3308,"none":4291,"hope":1578,"gratitude":1577,"humor":63,"joy":986,"pride":530,"sadness":267,"unclear":43,"fear":64,"confusion":26,"curiosity":34,"concern":5,"praise":3,"sarcasm":7,"support":2,"encouragement":1,"desperation":2,"contempt":1},"housing":{"none":1194,"anger":534,"frustration":1131,"hope":193,"gratitude":206,"joy":130,"curiosity":7,"sadness":74,"fear":10,"pride":52,"humor":9,"unclear":8,"respect":1,"confusion":2,"concern":1},"health":{"none":4795,"gratitude":1720,"frustration":2546,"anger":1165,"humor":230,"joy":657,"fear":110,"hope":814,"sadness":162,"curiosity":55,"pride":107,"confusion":9,"unclear":15,"praise":9,"prayer":4,"hate":1,"concern":7,"anxiety":3,"congratulation":1,"love":4,"sarcasm":3,"doubt":1,"threat":1,"encouragement":2,"worry":2}},"intent":{"education":{"complaint":2591,"procedural_question":2691,"request_for_help":1013,"off_topic":1152,"praise":2491,"spam":126,"confirmation":92,"thanks":516,"political":192,"unclear":35,"other":538,"follow_up":17,"suggestion":1,"protest":3},"housing":{"off_topic":345,"complaint":901,"other":146,"procedural_question":669,"thanks":69,"confirmation":30,"political":72,"request_for_help":321,"praise":282,"unclear":14,"follow_up":1,"spam":27},"health":{"off_topic":1476,"follow_up":23,"thanks":923,"procedural_question":2322,"request_for_help":799,"complaint":2138,"praise":1557,"other":1222,"political":142,"spam":184,"confirmation":169,"unclear":24,"information":1,"complaint|request_for_help":2,"informational":4,"direct_complaint":1,"statement":3,"none":2,"direct_comment":2}},"relation_to_post":{"education":{"direct_complaint":2108,"direct_question":2695,"request_for_help":471,"off_topic":2625,"spam":64,"confirmation":95,"praise":2443,"thanks":231,"complaint":14,"other":389,"unclear":38,"direct":16,"follow_up":109,"direct_praise":105,"procedural_question":10,"none":7,"direct_confirmation":2,"direct_comment":18,"direct_thanks":1,"direct_request":9,"direct_compliment":4,"political":4},"housing":{"off_topic":912,"direct_complaint":687,"direct_question":716,"praise":261,"confirmation":33,"other":69,"thanks":17,"request_for_help":121,"direct_praise":16,"follow_up":16,"unclear":18,"direct_comment":2,"procedural_question":2,"direct":3,"direct_request":1,"direct_confirmation":1,"spam":2},"health":{"off_topic":3031,"direct_question":2727,"praise":1443,"direct_complaint":1879,"confirmation":197,"direct_comment":95,"request_for_help":211,"thanks":305,"other":598,"direct_praise":223,"spam":14,"follow_up":71,"unclear":42,"direct":88,"complaint":4,"direct_request":6,"direct_statement":17,"direct_thanks":13,"praise/thanks":15,"request":1,"none":6,"direct_compliment":2,"direct_confirmation":5,"statement":1}},"topic":{"education":{"education":7754,"employment":283,"other":1711,"unclear":598,"exams_results":615,"health":40,"service_access":401,"infrastructure":18,"booking_allocation":10,"exams":3,"covid_prevention":1,"politics":1,"eligibility":7,"housing":5,"none":1,"political":5,"general":5},"housing":{"unclear":303,"housing":1427,"service_access":260,"other":608,"infrastructure":193,"employment":19,"education":3,"booking_allocation":29,"eligibility":1,"political":14,"law":1,"tourism":4,"general":8,"exams_results":2,"economy":1,"health":4},"health":{"health":5972,"service_access":943,"other":2752,"covid_prevention":85,"education":196,"unclear":768,"infrastructure":39,"exams_results":6,"employment":109,"drug_trafficking":1,"housing":2,"political":22,"booking_allocation":9,"population":3,"general":33,"eligibility":4,"location":6,"travel":3,"health|service_access":1,"none":8,"religious":3,"education|employment":1,"foreign relations":4,"vaccination":10,"event":1,"addiction":5,"job_or_recruitment":7,"food":1}},"specificity":{"education":{"specific":4308,"general":5830,"unclear":1320},"housing":{"unclear":436,"general":1173,"specific":1268},"health":{"general":6301,"specific":3463,"unclear":1229,"personal":1}},"needs_official_response":{"education":{"true":6159,"false":5299},"housing":{"false":1008,"true":1869},"health":{"false":5797,"true":5197}},"contains_personal_data":{"education":{"false":11106,"true":352},"housing":{"false":2720,"true":157},"health":{"false":10543,"true":451}},"is_duplicate_or_template":{"education":{"false":11335,"true":123},"housing":{"false":2872,"true":5},"health":{"false":10841,"true":153}}},"postTot":{"language":{"arabic":6015,"unclear":95,"mixed":49,"english":6},"sentiment":{"neutral":3861,"positive":2153,"unclear":113,"negative":36,"mixed":2},"emotion":{"none":3682,"hope":1871,"pride":1801,"gratitude":567,"joy":480,"fear":43,"sadness":19,"frustration":13,"anger":12,"unclear":5,"(empty list)":1,"concern":1,"reassurance":1},"topic":{"education":1529,"infrastructure":1420,"housing":1357,"health":1256,"service_access":175,"other":135,"unclear":111,"exams_results":100,"employment":32,"covid_prevention":26,"booking_allocation":17,"job_or_recruitment":2,"foreign relations":1,"health|infrastructure":1,"population":1,"report_or_result":1,"tourism":1},"post_type":{"announcement":4822,"report_or_result":533,"guidance":487,"unclear":116,"service_update":75,"warning":51,"event":35,"other":31,"announcement|guidance":7,"announcement|service_update":4,"job_or_recruitment":4},"audience_action":{"none":5047,"apply":463,"attend":157,"contact_office":112,"check_status":107,"book":86,"submit_documents":78,"other":62,"unclear":13,"contact":9,"donate":4,"download":4,"check_location":3,"consult_doctor":3,"consult":2,"visit":2,"wear_mask":2,"ask":1,"ask_questions":1,"call":1,"check":1,"check_app":1,"check_status|submit_documents|contact_office":1,"contact_hotline":1,"contact_or_book":1,"download_app":1,"register":1,"submit":1},"specificity":{"specific":4103,"general":1876,"unclear":186},"mentions_deadline":{"false":4868,"true":1297},"mentions_location":{"true":4565,"false":1600},"mentions_eligibility":{"false":4814,"true":1351},"mentions_numbers":{"true":4178,"false":1987},"contains_personal_data":{"false":6153,"true":12}},"comTot":{"language":{"arabic":24051,"mixed":449,"english":339,"other":184,"arabizi":168,"unclear":130,"arabic|english":4,"french":2,"arabic|mixed":1,"emoji":1},"sentiment":{"neutral":10655,"negative":7933,"positive":6428,"unclear":226,"mixed":76,"prayerful":5,"hopeful":4,"question":1,"sad":1},"emotion":{"none":10280,"frustration":6985,"gratitude":3503,"anger":3329,"hope":2585,"joy":1773,"pride":689,"sadness":503,"humor":302,"fear":184,"curiosity":96,"unclear":66,"(empty list)":41,"confusion":37,"concern":13,"praise":12,"sarcasm":10,"love":4,"prayer":4,"anxiety":3,"encouragement":3,"desperation":2,"support":2,"worry":2,"congratulation":1,"contempt":1,"doubt":1,"hate":1,"respect":1,"threat":1},"intent":{"procedural_question":5682,"complaint":5630,"praise":4330,"off_topic":2973,"request_for_help":2133,"other":1906,"thanks":1508,"political":406,"spam":337,"confirmation":291,"unclear":73,"follow_up":41,"informational":4,"protest":3,"statement":3,"complaint|request_for_help":2,"direct_comment":2,"none":2,"direct_complaint":1,"information":1,"suggestion":1},"relation_to_post":{"off_topic":6568,"direct_question":6138,"direct_complaint":4674,"praise":4147,"other":1056,"request_for_help":803,"thanks":553,"direct_praise":344,"confirmation":325,"follow_up":196,"direct_comment":115,"direct":107,"unclear":98,"spam":80,"complaint":18,"direct_statement":17,"direct_request":16,"praise/thanks":15,"direct_thanks":14,"none":13,"procedural_question":12,"direct_confirmation":8,"direct_compliment":6,"political":4,"request":1,"statement":1},"topic":{"education":7953,"health":6016,"other":5071,"unclear":1669,"service_access":1604,"housing":1434,"exams_results":623,"employment":411,"infrastructure":250,"covid_prevention":86,"booking_allocation":48,"general":46,"political":41,"eligibility":12,"vaccination":10,"none":9,"job_or_recruitment":7,"location":6,"addiction":5,"foreign relations":4,"tourism":4,"exams":3,"population":3,"religious":3,"travel":3,"drug_trafficking":1,"economy":1,"education|employment":1,"event":1,"food":1,"health|service_access":1,"law":1,"politics":1},"specificity":{"general":13304,"specific":9039,"unclear":2985,"personal":1},"needs_official_response":{"true":13225,"false":12104},"contains_personal_data":{"false":24369,"true":960},"is_duplicate_or_template":{"false":25048,"true":281}},"intentResp":{"procedural_question":{"comments":5682,"needs_response":5653,"response_rate_percent":99.5},"complaint":{"comments":5630,"needs_response":5275,"response_rate_percent":93.7},"praise":{"comments":4330,"needs_response":10,"response_rate_percent":0.2},"off_topic":{"comments":2973,"needs_response":15,"response_rate_percent":0.5},"request_for_help":{"comments":2133,"needs_response":2055,"response_rate_percent":96.3},"other":{"comments":1906,"needs_response":97,"response_rate_percent":5.1},"thanks":{"comments":1508,"needs_response":3,"response_rate_percent":0.2},"political":{"comments":406,"needs_response":98,"response_rate_percent":24.1},"spam":{"comments":337,"needs_response":2,"response_rate_percent":0.6},"confirmation":{"comments":291,"needs_response":2,"response_rate_percent":0.7},"unclear":{"comments":73,"needs_response":0,"response_rate_percent":0.0},"follow_up":{"comments":41,"needs_response":13,"response_rate_percent":31.7},"informational":{"comments":4,"needs_response":0,"response_rate_percent":0.0},"protest":{"comments":3,"needs_response":0,"response_rate_percent":0.0},"statement":{"comments":3,"needs_response":0,"response_rate_percent":0.0},"complaint|request_for_help":{"comments":2,"needs_response":2,"response_rate_percent":100.0},"direct_comment":{"comments":2,"needs_response":0,"response_rate_percent":0.0},"none":{"comments":2,"needs_response":0,"response_rate_percent":0.0},"direct_complaint":{"comments":1,"needs_response":0,"response_rate_percent":0.0},"information":{"comments":1,"needs_response":0,"response_rate_percent":0.0},"suggestion":{"comments":1,"needs_response":0,"response_rate_percent":0.0}},"flow":[{"post_type":"announcement","comment_intent":"procedural_question","comments":4327},{"post_type":"announcement","comment_intent":"complaint","comments":4256},{"post_type":"announcement","comment_intent":"praise","comments":3411},{"post_type":"announcement","comment_intent":"off_topic","comments":2132},{"post_type":"announcement","comment_intent":"request_for_help","comments":1570},{"post_type":"announcement","comment_intent":"other","comments":1134},{"post_type":"announcement","comment_intent":"thanks","comments":1045},{"post_type":"guidance","comment_intent":"procedural_question","comments":786},{"post_type":"guidance","comment_intent":"complaint","comments":688},{"post_type":"guidance","comment_intent":"other","comments":605},{"post_type":"guidance","comment_intent":"off_topic","comments":531},{"post_type":"report_or_result","comment_intent":"complaint","comments":477},{"post_type":"report_or_result","comment_intent":"praise","comments":440},{"post_type":"report_or_result","comment_intent":"procedural_question","comments":334},{"post_type":"announcement","comment_intent":"political","comments":320},{"post_type":"guidance","comment_intent":"praise","comments":298},{"post_type":"report_or_result","comment_intent":"request_for_help","comments":244},{"post_type":"guidance","comment_intent":"thanks","comments":237},{"post_type":"guidance","comment_intent":"request_for_help","comments":229},{"post_type":"announcement","comment_intent":"spam","comments":219},{"post_type":"report_or_result","comment_intent":"off_topic","comments":177},{"post_type":"announcement","comment_intent":"confirmation","comments":171},{"post_type":"report_or_result","comment_intent":"thanks","comments":162},{"post_type":"report_or_result","comment_intent":"other","comments":98},{"post_type":"guidance","comment_intent":"confirmation","comments":89},{"post_type":"guidance","comment_intent":"spam","comments":77},{"post_type":"service_update","comment_intent":"procedural_question","comments":59},{"post_type":"service_update","comment_intent":"complaint","comments":59},{"post_type":"warning","comment_intent":"procedural_question","comments":59},{"post_type":"announcement","comment_intent":"unclear","comments":56},{"post_type":"event","comment_intent":"praise","comments":56},{"post_type":"warning","comment_intent":"off_topic","comments":55},{"post_type":"other","comment_intent":"praise","comments":53},{"post_type":"warning","comment_intent":"complaint","comments":47},{"post_type":"report_or_result","comment_intent":"political","comments":38},{"post_type":"guidance","comment_intent":"political","comments":36},{"post_type":"other","comment_intent":"procedural_question","comments":34},{"post_type":"unclear","comment_intent":"complaint","comments":33},{"post_type":"event","comment_intent":"complaint","comments":33},{"post_type":"warning","comment_intent":"other","comments":32},{"post_type":"service_update","comment_intent":"off_topic","comments":30},{"post_type":"event","comment_intent":"procedural_question","comments":29},{"post_type":"unclear","comment_intent":"praise","comments":28},{"post_type":"service_update","comment_intent":"request_for_help","comments":28},{"post_type":"announcement","comment_intent":"follow_up","comments":27},{"post_type":"unclear","comment_intent":"procedural_question","comments":23},{"post_type":"warning","comment_intent":"request_for_help","comments":21},{"post_type":"warning","comment_intent":"praise","comments":21},{"post_type":"service_update","comment_intent":"praise","comments":19},{"post_type":"job_or_recruitment","comment_intent":"procedural_question","comments":19},{"post_type":"report_or_result","comment_intent":"spam","comments":18},{"post_type":"other","comment_intent":"complaint","comments":17},{"post_type":"other","comment_intent":"thanks","comments":17},{"post_type":"warning","comment_intent":"thanks","comments":16},{"post_type":"event","comment_intent":"request_for_help","comments":15},{"post_type":"event","comment_intent":"off_topic","comments":14},{"post_type":"other","comment_intent":"off_topic","comments":12},{"post_type":"unclear","comment_intent":"thanks","comments":12},{"post_type":"unclear","comment_intent":"request_for_help","comments":11},{"post_type":"announcement|guidance","comment_intent":"complaint","comments":11},{"post_type":"other","comment_intent":"other","comments":11},{"post_type":"unclear","comment_intent":"other","comments":11},{"post_type":"guidance","comment_intent":"follow_up","comments":11},{"post_type":"guidance","comment_intent":"unclear","comments":11},{"post_type":"unclear","comment_intent":"off_topic","comments":10},{"post_type":"warning","comment_intent":"confirmation","comments":10},{"post_type":"other","comment_intent":"request_for_help","comments":10},{"post_type":"job_or_recruitment","comment_intent":"off_topic","comments":9},{"post_type":"event","comment_intent":"other","comments":8},{"post_type":"announcement|guidance","comment_intent":"procedural_question","comments":8},{"post_type":"report_or_result","comment_intent":"confirmation","comments":8},{"post_type":"warning","comment_intent":"spam","comments":8},{"post_type":"service_update","comment_intent":"spam","comments":8},{"post_type":"other","comment_intent":"confirmation","comments":7},{"post_type":"announcement|guidance","comment_intent":"thanks","comments":6},{"post_type":"service_update","comment_intent":"other","comments":6},{"post_type":"announcement|service_update","comment_intent":"thanks","comments":6},{"post_type":"service_update","comment_intent":"thanks","comments":5},{"post_type":"event","comment_intent":"political","comments":5},{"post_type":"announcement|service_update","comment_intent":"complaint","comments":5},{"post_type":"announcement|service_update","comment_intent":"procedural_question","comments":4},{"post_type":"job_or_recruitment","comment_intent":"complaint","comments":4},{"post_type":"event","comment_intent":"confirmation","comments":3},{"post_type":"event","comment_intent":"spam","comments":3},{"post_type":"announcement","comment_intent":"protest","comments":3},{"post_type":"guidance","comment_intent":"statement","comments":3},{"post_type":"service_update","comment_intent":"political","comments":2},{"post_type":"other","comment_intent":"political","comments":2},{"post_type":"event","comment_intent":"thanks","comments":2},{"post_type":"other","comment_intent":"spam","comments":2},{"post_type":"report_or_result","comment_intent":"unclear","comments":2},{"post_type":"report_or_result","comment_intent":"follow_up","comments":2},{"post_type":"announcement|guidance","comment_intent":"off_topic","comments":2},{"post_type":"unclear","comment_intent":"confirmation","comments":2},{"post_type":"guidance","comment_intent":"informational","comments":2},{"post_type":"announcement|service_update","comment_intent":"praise","comments":2},{"post_type":"announcement|service_update","comment_intent":"request_for_help","comments":2},{"post_type":"guidance","comment_intent":"none","comments":2},{"post_type":"unclear","comment_intent":"political","comments":2},{"post_type":"job_or_recruitment","comment_intent":"unclear","comments":2},{"post_type":"job_or_recruitment","comment_intent":"request_for_help","comments":2},{"post_type":"guidance","comment_intent":"direct_comment","comments":2},{"post_type":"announcement","comment_intent":"informational","comments":2},{"post_type":"warning","comment_intent":"unclear","comments":2},{"post_type":"announcement","comment_intent":"suggestion","comments":1},{"post_type":"announcement|guidance","comment_intent":"request_for_help","comments":1},{"post_type":"service_update","comment_intent":"follow_up","comments":1},{"post_type":"announcement|service_update","comment_intent":"spam","comments":1},{"post_type":"job_or_recruitment","comment_intent":"praise","comments":1},{"post_type":"job_or_recruitment","comment_intent":"other","comments":1},{"post_type":"announcement","comment_intent":"information","comments":1},{"post_type":"announcement","comment_intent":"complaint|request_for_help","comments":1},{"post_type":"announcement","comment_intent":"direct_complaint","comments":1},{"post_type":"service_update","comment_intent":"confirmation","comments":1},{"post_type":"warning","comment_intent":"political","comments":1},{"post_type":"report_or_result","comment_intent":"complaint|request_for_help","comments":1},{"post_type":"announcement|service_update","comment_intent":"off_topic","comments":1},{"post_type":"announcement|guidance","comment_intent":"praise","comments":1},{"post_type":"job_or_recruitment","comment_intent":"spam","comments":1}],"sentFlow":[{"post_sentiment":"neutral","comment_sentiment":"neutral","comments":7562},{"post_sentiment":"neutral","comment_sentiment":"negative","comments":5233},{"post_sentiment":"positive","comment_sentiment":"positive","comments":3206},{"post_sentiment":"neutral","comment_sentiment":"positive","comments":3077},{"post_sentiment":"positive","comment_sentiment":"neutral","comments":2942},{"post_sentiment":"positive","comment_sentiment":"negative","comments":2601},{"post_sentiment":"neutral","comment_sentiment":"unclear","comments":129},{"post_sentiment":"negative","comment_sentiment":"positive","comments":102},{"post_sentiment":"positive","comment_sentiment":"unclear","comments":92},{"post_sentiment":"negative","comment_sentiment":"neutral","comments":92},{"post_sentiment":"negative","comment_sentiment":"negative","comments":69},{"post_sentiment":"neutral","comment_sentiment":"mixed","comments":51},{"post_sentiment":"unclear","comment_sentiment":"neutral","comments":46},{"post_sentiment":"unclear","comment_sentiment":"positive","comments":40},{"post_sentiment":"unclear","comment_sentiment":"negative","comments":27},{"post_sentiment":"positive","comment_sentiment":"mixed","comments":25},{"post_sentiment":"mixed","comment_sentiment":"neutral","comments":13},{"post_sentiment":"neutral","comment_sentiment":"prayerful","comments":5},{"post_sentiment":"neutral","comment_sentiment":"hopeful","comments":4},{"post_sentiment":"mixed","comment_sentiment":"negative","comments":3},{"post_sentiment":"mixed","comment_sentiment":"positive","comments":3},{"post_sentiment":"negative","comment_sentiment":"unclear","comments":3},{"post_sentiment":"unclear","comment_sentiment":"unclear","comments":2},{"post_sentiment":"neutral","comment_sentiment":"sad","comments":1},{"post_sentiment":"neutral","comment_sentiment":"question","comments":1}],"topicMatch":{"comparable_post_comment_topics":18299,"same_topic":15405,"same_topic_percent":84.2},"load":{"annotated_posts_with_annotated_comments":3960,"mean_comments_per_such_post":6.4,"median_comments_per_such_post":7.0,"p90_comments_per_such_post":10.0,"max_comments_on_one_annotated_post":10},"conf":{"posts":{"valid":6165,"invalid_or_missing":0,"mean":0.91,"median":0.95,"min":0.0,"p10":0.9,"p25":0.9,"p75":0.96,"p90":0.96,"max":1.0,"bins":{"0.95–1.00":3141,"0.85–0.94":2798,"<0.50":165,"0.70–0.84":36,"0.50–0.69":25}},"comments":{"valid":25329,"invalid_or_missing":0,"mean":0.866,"median":0.9,"min":0.1,"p10":0.8,"p25":0.8,"p75":0.92,"p90":0.95,"max":0.99,"bins":{"0.85–0.94":15625,"0.70–0.84":6017,"0.95–1.00":2840,"<0.50":163,"0.50–0.69":684}},"by":{"education":{"posts":{"valid":1680,"invalid_or_missing":0,"mean":0.94,"median":0.96,"min":0.2,"p10":0.9,"p25":0.94,"p75":0.96,"p90":0.96,"max":0.99,"bins":{"0.95–1.00":1202,"0.85–0.94":443,"<0.50":7,"0.70–0.84":15,"0.50–0.69":13}},"comments":{"valid":11458,"invalid_or_missing":0,"mean":0.892,"median":0.9,"min":0.2,"p10":0.8,"p25":0.88,"p75":0.94,"p90":0.95,"max":0.99,"bins":{"0.85–0.94":7614,"0.70–0.84":1505,"0.95–1.00":2095,"<0.50":49,"0.50–0.69":195}}},"housing":{"posts":{"valid":2952,"invalid_or_missing":0,"mean":0.911,"median":0.9,"min":0.0,"p10":0.9,"p25":0.9,"p75":0.96,"p90":0.97,"max":1.0,"bins":{"0.85–0.94":1630,"0.95–1.00":1262,"<0.50":60}},"comments":{"valid":2877,"invalid_or_missing":0,"mean":0.86,"median":0.9,"min":0.2,"p10":0.8,"p25":0.8,"p75":0.92,"p90":0.94,"max":0.98,"bins":{"0.70–0.84":744,"0.85–0.94":1752,"0.50–0.69":88,"0.95–1.00":261,"<0.50":32}}},"health":{"posts":{"valid":1533,"invalid_or_missing":0,"mean":0.875,"median":0.9,"min":0.0,"p10":0.9,"p25":0.9,"p75":0.95,"p90":0.95,"max":0.99,"bins":{"0.85–0.94":725,"0.95–1.00":677,"0.50–0.69":12,"<0.50":98,"0.70–0.84":21}},"comments":{"valid":10994,"invalid_or_missing":0,"mean":0.842,"median":0.9,"min":0.1,"p10":0.7,"p25":0.8,"p75":0.9,"p90":0.9,"max":0.99,"bins":{"0.70–0.84":3768,"0.85–0.94":6259,"0.95–1.00":484,"0.50–0.69":401,"<0.50":82}}}}},"oov":{"posts":{"emotion":3,"topic":7,"post_type":11,"audience_action":40},"comments":{"language":8,"sentiment":11,"emotion":235,"intent":19,"relation_to_post":691,"topic":164,"specificity":1}},"prov":[{"ministry_key":"education","record_type":"comment","provider":"iu_1","model":"gpt-oss-120b","records":3646},{"ministry_key":"education","record_type":"comment","provider":"iu_2","model":"gpt-oss-120b","records":4024},{"ministry_key":"education","record_type":"comment","provider":"nvidia","model":"openai/gpt-oss-20b","records":3788},{"ministry_key":"education","record_type":"post","provider":"iu_1","model":"gpt-oss-120b","records":531},{"ministry_key":"education","record_type":"post","provider":"iu_2","model":"gpt-oss-120b","records":592},{"ministry_key":"education","record_type":"post","provider":"nvidia","model":"openai/gpt-oss-20b","records":557},{"ministry_key":"health","record_type":"comment","provider":"nvidia","model":"openai/gpt-oss-20b","records":10994},{"ministry_key":"health","record_type":"post","provider":"nvidia","model":"openai/gpt-oss-20b","records":1533},{"ministry_key":"housing","record_type":"comment","provider":"iu_1","model":"gpt-oss-120b","records":462},{"ministry_key":"housing","record_type":"comment","provider":"iu_2","model":"gpt-oss-120b","records":625},{"ministry_key":"housing","record_type":"comment","provider":"nvidia","model":"openai/gpt-oss-20b","records":1790},{"ministry_key":"housing","record_type":"post","provider":"iu_1","model":"gpt-oss-120b","records":423},{"ministry_key":"housing","record_type":"post","provider":"iu_2","model":"gpt-oss-120b","records":451},{"ministry_key":"housing","record_type":"post","provider":"nvidia","model":"openai/gpt-oss-20b","records":2078}]};
+const M=['education','housing','health'];
+const MN={education:'التعليم',housing:'الإسكان',health:'الصحة',all:'الوزارات الثلاث'};
+const MAR={education:'وزارة التربية والتعليم',housing:'وزارة الإسكان والمرافق',health:'وزارة الصحة والسكان'};
+const MC={education:'var(--edu)',housing:'var(--hou)',health:'var(--hea)',all:'var(--emph)'};
+const LBL={announcement:'إعلان',report_or_result:'تقرير أو نتيجة',guidance:'إرشادات ونصائح',service_update:'تحديث خدمة',warning:'تحذير',event:'فعالية',job_or_recruitment:'وظائف',
+ education:'التعليم',infrastructure:'البنية التحتية والمرافق',housing:'الإسكان',health:'الصحة',service_access:'الوصول إلى خدمة',exams_results:'الامتحانات والنتائج',employment:'التوظيف',covid_prevention:'الوقاية من كورونا',booking_allocation:'الحجز والتخصيص',
+ none:'لا شيء',apply:'التقديم',attend:'الحضور',contact_office:'التواصل مع مكتب',check_status:'الاستعلام عن حالة',book:'الحجز',submit_documents:'تقديم مستندات',
+ procedural_question:'سؤال عملي',complaint:'شكوى',request_for_help:'طلب مساعدة',praise:'ثناء',thanks:'شكر',off_topic:'تعليق خارج الموضوع',political:'تعليق سياسي',spam:'رسائل مزعجة وإعلانات',confirmation:'تأكيد',follow_up:'متابعة',
+ hope:'الأمل',pride:'الفخر',gratitude:'الامتنان',joy:'الفرح',frustration:'الإحباط',anger:'الغضب',sadness:'الحزن',fear:'الخوف',humor:'الدعابة',
+ positive:'إيجابية',neutral:'محايدة',negative:'سلبية',other:'أخرى',unclear:'غير واضحة'};
+const L=k=>LBL[k]||k.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase());
+const fmt=d3.format(','), pc=v=>(v<1&&v>0?v.toFixed(1):Math.round(v))+'%', pc1=v=>v.toFixed(1)+'%';
+const cov=Object.fromEntries(D.coverage.map(c=>[c.key,c]));
+const den=(src,m)=>m==='all'?(src==='posts'?D.totals.annotated_posts:D.totals.annotated_comments):(src==='posts'?cov[m].annotated_posts:cov[m].annotated_comments);
+const cnt=(src,f,m,k)=>m==='all'?((src==='posts'?D.postTot:D.comTot)[f][k]||0):(D[src][f][m][k]||0);
+const pct=(src,f,m,k)=>100*cnt(src,f,m,k)/den(src,m);
+let state={m:'all'};
+try{const s=localStorage.getItem('cq-m');if(s&&MN[s])state.m=s}catch(e){}
+const tip=document.getElementById('tip');
+function showTip(ev,html){tip.innerHTML=html;tip.style.opacity=1;const w=tip.offsetWidth,h=tip.offsetHeight;let x=ev.clientX+14,y=ev.clientY+14;if(x+w>innerWidth-8)x=ev.clientX-w-14;if(y+h>innerHeight-8)y=ev.clientY-h-14;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
+function hideTip(){tip.style.opacity=0}
+function tok(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function bar(x,y,w,h,r=3){w=Math.max(0,w);r=Math.min(r,w,h/2);return `M${x},${y}h${w-r}a${r},${r} 0 0 1 ${r},${r}v${h-2*r}a${r},${r} 0 0 1 ${-r},${r}h${-(w-r)}z`}
+function svgIn(el,w,h){el.innerHTML='';return d3.select(el).append('svg').attr('width',w).attr('height',h).attr('viewBox',`0 0 ${w} ${h}`)}
+// charts are laid out left-to-right, then mirrored so they read right-to-left; each label is flipped back in place
+function mirror(el){const svg=el.querySelector('svg');if(!svg)return;const W=+svg.getAttribute('width');
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('transform',`translate(${W},0) scale(-1,1)`);
+  while(svg.firstChild)g.appendChild(svg.firstChild);svg.appendChild(g);
+  g.querySelectorAll('text').forEach(t=>{const x=+(t.getAttribute('x')||0);t.setAttribute('transform',`translate(${2*x},0) scale(-1,1)`);t.style.direction='rtl'});
+}
+function hover(sel,html){sel.on('mousemove',(e,d)=>showTip(e,html(d))).on('mouseleave',hideTip)}
+const dimOf=m=>state.m!=='all'&&m!==state.m;
+
+// fold categories that are under 1% everywhere into Other
+function fold(src,f,{exclude=[],min=1,order}={}){
+  const tot=src==='posts'?D.postTot[f]:D.comTot[f];
+  let keys=Object.keys(tot).filter(k=>!exclude.includes(k));
+  const keep=keys.filter(k=>k!=='other'&&k!=='unclear'&&!k.includes('|')&&M.some(m=>pct(src,f,m,k)>=min));
+  if(order)keep.sort((a,b)=>order.indexOf(a)-order.indexOf(b));else keep.sort((a,b)=>tot[b]-tot[a]);
+  const rest=keys.filter(k=>!keep.includes(k));
+  const rows=keep.map(k=>({k,label:L(k),keys:[k]}));
+  if(rest.length)rows.push({k:'__other',label:'أخرى',keys:rest});
+  return rows;
+}
+
+// rows × three ministry bars
+function matrix(el,src,f,rows){
+  const W=el.clientWidth,narrow=W<560,lw=narrow?0:Math.min(190,W*.3),bh=9,gap=3,lab=narrow?20:0,rp=16;
+  const rowH=lab+3*bh+2*gap+rp,top=22,H=top+rows.length*rowH;
+  const val=(r,m)=>r.keys.reduce((s,k)=>s+cnt(src,f,m,k),0);
+  const p=(r,m)=>100*val(r,m)/den(src,m);
+  const mx=d3.max(rows,r=>d3.max(M,m=>p(r,m)));
+  const x=d3.scaleLinear().domain([0,Math.max(10,Math.ceil(mx/10)*10)]).range([lw,W-44]);
+  const svg=svgIn(el,W,H);
+  const g=svg.append('g').attr('class','tick');
+  x.ticks(4).forEach(t=>{g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',top-6).attr('y2',H-rp+4);g.append('text').attr('x',x(t)).attr('y',10).attr('text-anchor','middle').text(t+'%')});
+  rows.forEach((r,i)=>{
+    const y0=top+i*rowH;
+    svg.append('text').attr('x',narrow?0:lw-12).attr('y',narrow?y0+12:y0+(3*bh+2*gap)/2+4).attr('text-anchor',narrow?'start':'end').style('font-size','13.5px').style('font-weight',500).text(r.label);
+    M.forEach((m,j)=>{
+      const y=y0+lab+j*(bh+gap),v=p(r,m),dim=dimOf(m);
+      const gg=svg.append('g').attr('class',dim?'dim':null);
+      gg.append('path').attr('d',bar(x(0),y,x(v)-x(0),bh)).style('fill',MC[m]);
+      if(!dim||state.m==='all')gg.append('text').attr('x',x(v)+5).attr('y',y+bh-1).attr('class','m').style('font','11px var(--f-mono)').text(pc(v));
+      gg.append('rect').attr('x',lw).attr('y',y-1).attr('width',W-lw).attr('height',bh+gap).style('fill','transparent')
+        .on('mousemove',e=>showTip(e,`<b>${MN[m]}</b> · ${r.label}<br>${fmt(val(r,m))} من ${fmt(den(src,m))} ${src==='posts'?'منشور':'تعليق'} (${pc1(v)})`)).on('mouseleave',hideTip);
+    });
+  });
+}
+
+function legends(){document.querySelectorAll('.mlegend').forEach(l=>l.innerHTML=M.map(m=>`<span style="opacity:${dimOf(m)?.35:1}"><i style="--c:${MC[m]}"></i>${MAR[m]}</span>`).join(''))}
+
+let postField='post_type';
+function cPosts(){const el=document.getElementById('c-posts');
+  const order={post_type:['announcement','report_or_result','guidance','service_update','warning','event'],audience_action:['none','apply','attend','contact_office','check_status','book','submit_documents']}[postField];
+  matrix(el,'posts',postField,fold('posts',postField,{order}))}
+
+function cFeat(){
+  const el=document.getElementById('c-feat'),W=el.clientWidth,narrow=W<560,lw=narrow?0:Math.min(200,W*.32);
+  const rows=[['mentions_location','true','يذكر مكانًا'],['mentions_numbers','true','يتضمن أرقامًا'],['specificity','specific','يتناول أمرًا محددًا'],['mentions_eligibility','true','يحدد شروط الاستحقاق'],['mentions_deadline','true','يذكر موعدًا نهائيًا'],['contains_personal_data','true','يتضمن بيانات شخصية']];
+  const rh=narrow?58:44,top=24,H=top+rows.length*rh;
+  const x=d3.scaleLinear().domain([0,100]).range([lw+8,W-16]);
+  const svg=svgIn(el,W,H),g=svg.append('g').attr('class','tick');
+  [0,25,50,75,100].forEach(t=>{g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',top-6).attr('y2',H-8);g.append('text').attr('x',x(t)).attr('y',10).attr('text-anchor','middle').text(t+'%')});
+  rows.forEach(([f,k,label],i)=>{
+    const y0=top+i*rh,cy=narrow?y0+34:y0+rh/2;
+    svg.append('text').attr('x',narrow?0:lw-12).attr('y',narrow?y0+14:cy+4).attr('text-anchor',narrow?'start':'end').style('font-size','13.5px').style('font-weight',500).text(label);
+    const vs=M.map(m=>pct('posts',f,m,k));
+    svg.append('line').attr('x1',x(d3.min(vs))).attr('x2',x(d3.max(vs))).attr('y1',cy).attr('y2',cy).style('stroke','var(--line)').style('stroke-width',4).style('stroke-linecap','round');
+    const all=pct('posts',f,'all',k);
+    svg.append('line').attr('x1',x(all)).attr('x2',x(all)).attr('y1',cy-11).attr('y2',cy+11).style('stroke','var(--ink)').style('stroke-width',2);
+    if(state.m==='all')svg.append('text').attr('x',x(all)).attr('y',cy-15).attr('text-anchor','middle').style('font','11px var(--f-mono)').text('الكل '+pc(all));
+    M.forEach((m,j)=>{const v=vs[j],dim=dimOf(m);
+      const c=svg.append('circle').attr('cx',x(v)).attr('cy',cy).attr('r',6.5).style('fill',MC[m]).style('stroke','var(--card)').style('stroke-width',2).attr('class',dim?'dim':null)
+        .on('mousemove',e=>showTip(e,`<b>${MN[m]}</b> · ${label}<br>${fmt(cnt('posts',f,m,k))} من ${fmt(den('posts',m))} منشور (${pc1(v)})`)).on('mouseleave',hideTip);
+      if(state.m===m)svg.append('text').attr('x',x(v)).attr('y',cy-14).attr('text-anchor','middle').style('font','600 12px var(--f-mono)').text(pc(v));
+    });
+  });
+}
+
+const TONE=[['negative','var(--neg)'],['neutral','var(--neu)'],['positive','var(--pos)'],['other','var(--oth)']];
+function cTone(){
+  document.getElementById('lg-tone').innerHTML=TONE.map(([k,c])=>`<span><i style="--c:${c}"></i>${L(k)}</span>`).join('');
+  const el=document.getElementById('c-tone'),W=el.clientWidth,narrow=W<560,lw=narrow?0:150,bh=18,groups=['all',...M];
+  const gh=(narrow?18:0)+2*bh+6+20,H=groups.length*gh;
+  const x=d3.scaleLinear().domain([0,100]).range([lw,W]);
+  const svg=svgIn(el,W,H);
+  groups.forEach((m,i)=>{
+    const y0=i*gh,g=svg.append('g').attr('class',dimOf(m)&&m!=='all'?'dim':null);
+    g.append('text').attr('x',0).attr('y',narrow?y0+13:y0+bh+5).style('font-size','14px').style('font-weight',600).text(MN[m]);
+    ['posts','comments'].forEach((src,j)=>{
+      const y=y0+(narrow?18:0)+j*(bh+6),d=den(src,m);
+      const parts=TONE.map(([k,c])=>{let n=k==='other'?d-['negative','neutral','positive'].reduce((s,q)=>s+cnt(src,'sentiment',m,q),0):cnt(src,'sentiment',m,k);return{k,c,n,v:100*n/d}});
+      g.append('text').attr('x',narrow?0:lw-10).attr('y',y+13).attr('text-anchor',narrow?'start':'end').attr('class','m').style('font-size','12px').text(narrow?'':(src==='posts'?'المنشورات':'التعليقات'));
+      let acc=0;const bx=narrow?74:lw;const xs=d3.scaleLinear().domain([0,100]).range([bx,W]);
+      if(narrow)g.append('text').attr('x',0).attr('y',y+13).attr('class','m').style('font-size','12px').text(src==='posts'?'المنشورات':'التعليقات');
+      parts.forEach(p=>{const x0=xs(acc),w=Math.max(0,xs(acc+p.v)-x0-2);acc+=p.v;if(w<=0)return;
+        g.append('rect').attr('x',x0).attr('y',y).attr('width',w).attr('height',bh).style('fill',p.c)
+          .on('mousemove',e=>showTip(e,`<b>${MN[m]}</b> · ${src==='posts'?'المنشورات':'التعليقات'}<br>${L(p.k)}: ${fmt(p.n)} (${pc1(p.v)})`)).on('mouseleave',hideTip);
+        if(w>34)g.append('text').attr('x',x0+6).attr('y',y+13).style('font','500 11.5px var(--f-mono)').style('fill',p.k==='negative'||p.k==='positive'?'var(--on)':'var(--ink)').style('pointer-events','none').text(pc(p.v));
+      });
+    });
+  });
+}
+
+function cEmo(){
+  const m=state.m,el=document.getElementById('c-emo'),W=el.clientWidth,cw=W<480?86:110,half=(W-cw)/2,rh=26,top=26;
+  document.getElementById('emo-sub').textContent=`${MN[m]} · نسبة المنشورات (يمينًا) والتعليقات (يسارًا) التي تُظهر كل شعور`;
+  const ks=['hope','pride','gratitude','joy','frustration','anger','sadness','fear','humor'],H=top+ks.length*rh;
+  const s=d3.scaleLinear().domain([0,50]).range([0,half-40]);
+  const svg=svgIn(el,W,H),cx=half;
+  svg.append('text').attr('x',cx-8).attr('y',12).attr('text-anchor','end').attr('class','m').style('font','600 12px var(--f-mono)').text('المنشورات');
+  svg.append('text').attr('x',cx+cw+8).attr('y',12).attr('class','m').style('font','600 12px var(--f-mono)').text('التعليقات');
+  ks.forEach((k,i)=>{const y=top+i*rh,a=pct('posts','emotion',m,k),b=pct('comments','emotion',m,k);
+    svg.append('text').attr('x',cx+cw/2).attr('y',y+13).attr('text-anchor','middle').style('font-size','13px').style('font-weight',500).text(L(k));
+    const wa=s(a),wb=s(b);
+    svg.append('path').attr('d',bar(0,y+3,wa,14)).attr('transform',`translate(${cx-4},0) scale(-1,1)`).style('fill','var(--soft)')
+      .on('mousemove',e=>showTip(e,`<b>${MN[m]}</b> · المنشورات · ${L(k)}<br>${fmt(cnt('posts','emotion',m,k))} منشور (${pc1(a)})`)).on('mouseleave',hideTip);
+    svg.append('path').attr('d',bar(cx+cw+4,y+3,wb,14)).style('fill',MC[m])
+      .on('mousemove',e=>showTip(e,`<b>${MN[m]}</b> · التعليقات · ${L(k)}<br>${fmt(cnt('comments','emotion',m,k))} تعليق (${pc1(b)})`)).on('mouseleave',hideTip);
+    svg.append('text').attr('x',cx-4-wa-5).attr('y',y+14).attr('text-anchor','end').attr('class','m').style('font','11px var(--f-mono)').text(pc(a));
+    svg.append('text').attr('x',cx+cw+4+wb+5).attr('y',y+14).attr('class','m').style('font','11px var(--f-mono)').text(pc(b));
+  });
+}
+
+function cIntent(){matrix(document.getElementById('c-intent'),'comments','intent',fold('comments','intent',{order:['procedural_question','complaint','request_for_help','praise','thanks','off_topic','political','spam','confirmation']}))}
+
+function cQueue(){
+  const el=document.getElementById('c-queue'),W=el.clientWidth,narrow=W<560,lw=narrow?0:150;
+  const R=D.intentResp,main=['procedural_question','complaint','praise','off_topic','request_for_help','thanks','political','spam','confirmation'];
+  const rows=main.map(k=>({k,label:L(k),n:R[k].comments,y:R[k].needs_response}));
+  const rest=Object.keys(R).filter(k=>!main.includes(k));rows.push({k:'o',label:'أخرى',n:d3.sum(rest,k=>R[k].comments),y:d3.sum(rest,k=>R[k].needs_response)});
+  const rh=narrow?44:30,H=rows.length*rh+4,rw=narrow?0:190;
+  const x=d3.scaleLinear().domain([0,d3.max(rows,r=>r.n)]).range([0,W-lw-rw-8]);
+  const svg=svgIn(el,W,H);
+  rows.forEach((r,i)=>{const y0=i*rh,by=narrow?y0+20:y0+6,bx=lw;
+    svg.append('text').attr('x',narrow?0:lw-10).attr('y',narrow?y0+14:by+12).attr('text-anchor',narrow?'start':'end').style('font-size','13.5px').style('font-weight',500).text(r.label);
+    const wy=x(r.y),wn=x(r.n-r.y);
+    if(wy>0)svg.append('rect').attr('x',bx).attr('y',by).attr('width',wy).attr('height',16).style('fill','var(--emph)');
+    svg.append('path').attr('d',bar(bx+wy+(wy>0?2:0),by,Math.max(wn-(wy>0?2:0),0),16)).style('fill','var(--soft)');
+    const pr=100*r.y/r.n;
+    svg.append('text').attr('x',narrow?W:bx+x(r.n)+8).attr('y',narrow?y0+14:by+12).attr('text-anchor',narrow?'end':'start').style('font','11.5px var(--f-mono)').attr('class','m').text(`${fmt(r.n)} · ${pc(pr)} تحتاج إلى رد`);
+    svg.append('rect').attr('x',0).attr('y',y0).attr('width',W).attr('height',rh).style('fill','transparent')
+      .on('mousemove',e=>showTip(e,`<b>${r.label}</b><br>${fmt(r.n)} تعليق<br>${fmt(r.y)} تحتاج إلى رد رسمي (${pc1(pr)})`)).on('mouseleave',hideTip);
+  });
+}
+
+function cNeed(){
+  const el=document.getElementById('c-need'),W=el.clientWidth,lw=130,rows=['all',...M],rh=30,H=rows.length*rh;
+  const x=d3.scaleLinear().domain([0,100]).range([lw,W-48]);const svg=svgIn(el,W,H);
+  const met=Object.fromEntries(D.metrics.map(r=>[r.key,r]));
+  rows.forEach((m,i)=>{const y=i*rh+6,v=m==='all'?100*D.comTot.needs_official_response['true']/D.totals.annotated_comments:met[m].needs_response_percent,n=m==='all'?D.comTot.needs_official_response['true']:met[m].comments_needing_response;
+    const g=svg.append('g').attr('class',m!=='all'&&dimOf(m)?'dim':null);
+    g.append('text').attr('x',lw-10).attr('y',y+12).attr('text-anchor','end').style('font-size','13.5px').style('font-weight',m==='all'?600:500).text(MN[m]);
+    g.append('rect').attr('x',lw).attr('y',y).attr('width',x(100)-lw).attr('height',16).style('fill','var(--track)');
+    g.append('path').attr('d',bar(lw,y,x(v)-lw,16)).style('fill',MC[m]);
+    g.append('text').attr('x',x(100)+6).attr('y',y+12).style('font','600 12px var(--f-mono)').text(pc(v));
+    g.append('rect').attr('x',0).attr('y',y-6).attr('width',W).attr('height',rh).style('fill','transparent').on('mousemove',e=>showTip(e,`<b>${MN[m]}</b><br>${fmt(n)} من ${fmt(den('comments',m))} تعليق تحتاج إلى رد`)).on('mouseleave',hideTip);
+  });
+}
+
+function cFlow(){
+  const el=document.getElementById('c-flow'),W=el.clientWidth,narrow=W<560,H=narrow?400:440;
+  const LK=['announcement','guidance','report_or_result'],RK=['procedural_question','complaint','request_for_help','praise','thanks','off_topic'];
+  const SVC=new Set(['procedural_question','complaint','request_for_help']);
+  const lk=k=>LK.includes(k)?k:'lo',rk=k=>RK.includes(k)?k:'ro';
+  const LN=[...LK,'lo'],RN=[...RK,'ro'],nm=k=>k==='lo'?'أنواع أخرى':k==='ro'?'تعليقات أخرى':L(k);
+  const mat={};D.flow.forEach(f=>{const a=lk(f.post_type),b=rk(f.comment_intent);mat[a+'>'+b]=(mat[a+'>'+b]||0)+f.comments});
+  const tot=d3.sum(Object.values(mat)),lt=k=>d3.sum(RN,r=>mat[k+'>'+r]||0),rt=k=>d3.sum(LN,l=>mat[l+'>'+k]||0);
+  const ml=narrow?2:150,mr=narrow?2:170,nw=10,g=8,lx=ml,rx=W-mr-nw;
+  const k=(H-g*(RN.length-1))/tot;
+  const lay=(ns,f)=>{let y=0;const o={};ns.forEach(n=>{const h=f(n)*k;o[n]={y,h,off:0};y+=h+(ns===LN?(H-tot*k)/(LN.length-1):g)});return o};
+  const Lp=lay(LN,lt),Rp=lay(RN,rt);
+  const svg=svgIn(el,W,H);
+  const links=[];LN.forEach(a=>RN.forEach(b=>{const v=mat[a+'>'+b]||0;if(!v)return;const t=v*k;const y1=Lp[a].y+Lp[a].off+t/2;Lp[a].off+=t;links.push({a,b,v,t,y1})}));
+  RN.forEach(b=>links.filter(l=>l.b===b).sort((p,q)=>LN.indexOf(p.a)-LN.indexOf(q.a)).forEach(l=>{l.y2=Rp[b].y+Rp[b].off+l.t/2;Rp[b].off+=l.t}));
+  const mid=(lx+nw+rx)/2;
+  const ls=svg.append('g').selectAll('path').data(links).join('path')
+    .attr('d',l=>`M${lx+nw},${l.y1}C${mid},${l.y1} ${mid},${l.y2} ${rx},${l.y2}`)
+    .style('fill','none').style('stroke',l=>SVC.has(l.b)?'var(--emph)':'var(--soft)').style('stroke-opacity',l=>SVC.has(l.b)?.5:.75).style('stroke-width',l=>Math.max(1,l.t-1))
+    .on('mousemove',(e,l)=>{ls.style('stroke-opacity',x=>x===l?.85:.12);showTip(e,`<b>${nm(l.a)} ← ${nm(l.b)}</b><br>${fmt(l.v)} تعليق<br>${pc1(100*l.v/lt(l.a))} من التعليقات على هذا النوع من المنشورات`)})
+    .on('mouseleave',()=>{reset();hideTip()});
+  const reset=()=>ls.style('stroke-opacity',l=>SVC.has(l.b)?.5:.75);
+  const node=(side,n,p)=>{const x=side==='l'?lx:rx,t=side==='l'?lt(n):rt(n);
+    svg.append('rect').attr('x',x).attr('y',p.y).attr('width',nw).attr('height',Math.max(1,p.h)).style('fill','var(--ink)');
+    const tx=svg.append('text').attr('x',narrow?(side==='l'?x+nw+10:x-10):(side==='l'?x-8:x+nw+8)).attr('y',p.y+p.h/2+4).attr('text-anchor',(side==='l')!==narrow?'end':'start').style('paint-order','stroke').style('stroke',narrow?'var(--card)':'none').style('stroke-width',4).style('stroke-linejoin','round').style('font-size',narrow?'12px':'13px').style('font-weight',500).style('cursor','default');
+    tx.append('tspan').text(nm(n));if(p.h>14||!narrow)tx.append('tspan').attr('class','m').style('font','11px var(--f-mono)').text(' '+fmt(t));
+    tx.on('mousemove',e=>{ls.style('stroke-opacity',l=>(side==='l'?l.a:l.b)===n?.85:.08);showTip(e,`<b>${nm(n)}</b><br>${fmt(t)} تعليق (${pc1(100*t/tot)})`)}).on('mouseleave',()=>{reset();hideTip()});
+  };
+  LN.forEach(n=>node('l',n,Lp[n]));RN.forEach(n=>node('r',n,Rp[n]));
+}
+
+function cHeat(){
+  const el=document.getElementById('c-heat'),W=el.clientWidth,lw=W<480?84:130,top=30;
+  const rows=['positive','neutral','negative'],cols=['negative','neutral','positive','other'];
+  const t={};D.sentFlow.forEach(f=>{const c=cols.includes(f.comment_sentiment)?f.comment_sentiment:'other';t[f.post_sentiment]=t[f.post_sentiment]||{};t[f.post_sentiment][c]=(t[f.post_sentiment][c]||0)+f.comments});
+  const cw=(W-lw)/cols.length,ch=54,H=top+rows.length*ch;
+  const ip=d3.interpolateRgb(tok('--track'),tok('--emph'));
+  const svg=svgIn(el,W,H);
+  svg.append('text').attr('x',0).attr('y',12).attr('class','m').style('font','600 11px var(--f-mono)').text('المنشور ↓  التعليق ←');
+  cols.forEach((c,j)=>svg.append('text').attr('x',lw+j*cw+cw/2).attr('y',top-8).attr('text-anchor','middle').style('font-size',W<480?'11px':'13px').style('font-weight',500).text(L(c)));
+  rows.forEach((r,i)=>{const n=d3.sum(cols,c=>t[r][c]||0);
+    svg.append('text').attr('x',lw-10).attr('y',top+i*ch+ch/2+5).attr('text-anchor','end').style('font-size','13.5px').style('font-weight',500).text('منشور '+L(r).replace(/ة$/,''));
+    cols.forEach((c,j)=>{const v=100*(t[r][c]||0)/n,s=Math.min(1,v/60);
+      svg.append('rect').attr('x',lw+j*cw+1).attr('y',top+i*ch+1).attr('width',cw-2).attr('height',ch-2).attr('rx',3).style('fill',ip(s))
+        .on('mousemove',e=>showTip(e,`<b>منشورات ${L(r)} ← تعليقات ${L(c)}</b><br>${fmt(t[r][c]||0)} من ${fmt(n)} تعليق (${pc1(v)})`)).on('mouseleave',hideTip);
+      svg.append('text').attr('x',lw+j*cw+cw/2).attr('y',top+i*ch+ch/2+5).attr('text-anchor','middle').style('font','600 14px var(--f-mono)').style('fill',s>.5?'var(--bg)':'var(--ink)').style('pointer-events','none').text(pc(v));
+    });
+  });
+}
+
+function cCtopic(){matrix(document.getElementById('c-ctopic'),'comments','topic',fold('comments','topic',{exclude:['unclear','none'],min:2,order:['education','health','housing','service_access','exams_results','infrastructure','employment']}))}
+
+let sortKey='name',sortDir=1;
+function cTable(){
+  const met=Object.fromEntries(D.metrics.map(r=>[r.key,r]));
+  const cols=[['name','الوزارة'],['posts','المنشورات المحلَّلة'],['cpp','تعليقات لكل منشور'],['ann','الإعلانات'],['qch','أسئلة وشكاوى ومساعدة'],['need','تحتاج إلى رد'],['neg','تعليقات سلبية'],['pos','تعليقات إيجابية']];
+  const rows=M.map(m=>({m,name:MN[m],posts:cov[m].annotated_posts,cpp:cov[m].raw_comments/cov[m].raw_posts,ann:met[m].announcement_percent,qch:met[m].question_complaint_help_percent,need:met[m].needs_response_percent,neg:met[m].negative_comment_percent,pos:pct('comments','sentiment',m,'positive')}));
+  rows.sort((a,b)=>(a[sortKey]>b[sortKey]?1:a[sortKey]<b[sortKey]?-1:0)*sortDir);
+  const cell=(r,k)=>{const v=r[k];if(k==='name')return `<td><b>${v}</b><br><span class="ar" style="color:var(--muted);font-size:13px">${MAR[r.m]}</span></td>`;
+    if(k==='posts')return `<td class="v">${fmt(v)}</td>`;if(k==='cpp')return `<td class="v">${v.toFixed(1)}</td>`;
+    return `<td class="v"><div class="cellbar"><s style="width:${v*0.7}px;--c:${MC[r.m]}"></s>${pc1(v)}</div></td>`};
+  document.getElementById('c-table').innerHTML=`<table><thead><tr>${cols.map(([k,l])=>`<th data-k="${k}"${k===sortKey?` aria-sort="${sortDir>0?'ascending':'descending'}"`:''} tabindex="0">${l}${k===sortKey?(sortDir>0?' ↑':' ↓'):''}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr style="opacity:${dimOf(r.m)?.4:1}">${cols.map(([k])=>cell(r,k)).join('')}</tr>`).join('')}</tbody></table><p style="color:var(--muted);font-size:13px;margin:10px 0 0">عمود «تعليقات لكل منشور» محسوب من كل ما جُمع من منشورات وتعليقات، وباقي الأعمدة من العناصر المحلَّلة.</p>`;
+  document.querySelectorAll('#c-table th').forEach(th=>{const go=()=>{const k=th.dataset.k;if(k===sortKey)sortDir*=-1;else{sortKey=k;sortDir=k==='name'?1:-1}cTable()};th.onclick=go;th.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});
+}
+
+function cCov(){
+  const el=document.getElementById('c-cov'),W=el.clientWidth,narrow=W<560,lw=narrow?0:120,rh=narrow?96:78,H=M.length*rh;
+  const svg=svgIn(el,W,H),x=d3.scaleLinear().domain([0,100]).range([narrow?82:lw+82,W-8]);
+  M.forEach((m,i)=>{const c=cov[m],y0=i*rh,g=svg.append('g').attr('class',dimOf(m)?'dim':null);
+    g.append('text').attr('x',narrow?0:lw-12).attr('y',narrow?y0+14:y0+24).attr('text-anchor',narrow?'start':'end').style('font-size','14px').style('font-weight',600).text(MN[m]);
+    [['posts',c.annotated_posts,c.raw_posts],['comments',c.annotated_comments,c.raw_comments]].forEach(([s,a,r],j)=>{const y=y0+(narrow?22:10)+j*26,v=100*a/r;
+      g.append('text').attr('x',x(0)-8).attr('y',y+12).attr('text-anchor','end').attr('class','m').style('font-size','12px').text(s==='posts'?'المنشورات':'التعليقات');
+      g.append('rect').attr('x',x(0)).attr('y',y).attr('width',x(100)-x(0)).attr('height',16).style('fill','var(--track)');
+      g.append('rect').attr('x',x(0)).attr('y',y).attr('width',x(v)-x(0)).attr('height',16).style('fill',MC[m]);
+      const lbl=`${fmt(a)} من ${fmt(r)} · ${pc(v)}`,inside=x(v)-x(0)>150;
+      g.append('text').attr('x',inside?x(0)+8:x(v)+8).attr('y',y+12).style('font','500 11.5px var(--f-mono)').style('fill',inside?'var(--on)':'var(--ink)').text(lbl);
+      g.append('rect').attr('x',0).attr('y',y).attr('width',W).attr('height',18).style('fill','transparent').on('mousemove',e=>showTip(e,`<b>${MN[m]}</b> · ${s==='posts'?'المنشورات':'التعليقات'}<br>حُلّل ${lbl}`)).on('mouseleave',hideTip);
+    });
+  });
+}
+
+function render(){legends();cPosts();cFeat();cTone();cEmo();cIntent();cQueue();cNeed();cFlow();cHeat();cCtopic();cTable();cCov();document.querySelectorAll('.chart').forEach(mirror)}
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{state.m=b.dataset.m;try{localStorage.setItem('cq-m',state.m)}catch(e){}
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.m===state.m));render()});
+document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.m===state.m));
+document.querySelectorAll('#seg-posts button').forEach(b=>b.onclick=()=>{postField=b.dataset.f;document.querySelectorAll('#seg-posts button').forEach(c=>c.setAttribute('aria-pressed',c===b));cPosts();mirror(document.getElementById('c-posts'))});
+let lastW=0,rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(innerWidth!==lastW){lastW=innerWidth;render()}},150)});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(()=>{cHeat();mirror(document.getElementById('c-heat'))},50));
+new MutationObserver(()=>setTimeout(()=>{cHeat();mirror(document.getElementById('c-heat'))},50)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+lastW=innerWidth;render();
+if(document.fonts)document.fonts.ready.then(render);
+</script>
